@@ -10,13 +10,13 @@ editor_options:
 
 ## Introduction
 
-Understanding the structure and patterns in the data, developing data structures for effectively storing and visualizing it, and using insights from it to predict the target variable of interest from values of other variables is the realm of data science. In this project, I have used the Walmart dataset form kaggle [1] to predict the weekly sales of a store based on the various features of the store and the environment affecting the sales. In the first step, as the Weekly_Sales has numerical values, a linear regression model was trained to predict the Weekly_Sales from the other features. Then, a k-Nearest neighbors model was trained over the dataset for this regression task and the best value of k was found after evaluating the model performance for different k. Then as sometimes it is more useful to understand if a given set of conditions would produce a high or low weekly_sales, the Weekly_Sales column was categorized into high, medium and low weekly sales and a knn model was trained to predict the class from the feature variables.
+Understanding the structure and patterns in the data, developing data structures for effectively storing and visualizing it, and using insights from it to predict the target variable of interest from values of other variables is the realm of data science. In this project, I have used the Walmart dataset form kaggle [1] to predict the weekly sales of a store based on the various features of the store and the environment affecting the sales. In the first step, as the Weekly_Sales has numerical values, a linear regression model was trained to predict the Weekly_Sales from the other features. Then, a k-Nearest neighbors model was trained over the dataset for this regression task and the best value of k was found after evaluating the model performance for different k. Then, as sometimes it is more useful to understand if a given set of conditions would produce a high or low weekly_sales, the Weekly_Sales column was categorized into high, medium and low weekly sales and a knn model was trained to predict the class from the feature variables.
 
 ## Methods
 
 ### Reading, visualizing and preprocessing the data
 
-The first step is to load the required libraries for the analysis.
+The first step is to load the required libraries for the analysis[2,3].
 
 ```{r warning=FALSE, message=FALSE}
 if(!require(tidyverse)) install.packages("tidyverse")
@@ -33,7 +33,7 @@ if(!require(lubridate)) install.packages("lubridate")
 library(lubridate)
 if(!require(corrplot)) install.packages("corrplot")
 library(corrplot)
-#library(neuralnet)
+set.seed(1, sample.kind="Rounding") 
 ```
 
 I downloaded the dataset into my computer, therefore, I used the read.csv function in R to read the Walmart dataset and store it into a dataframe called walmart_dataset. The function str(walmart_dataset) displays information about the number of rows and columns of the dataset, the data type in each column and the first few entries of each column.
@@ -43,15 +43,15 @@ walmart_dataset <- read.csv("/Users/aditya/Documents/Coursework/Online_Courses/M
 str(walmart_dataset)
 ```
 
-We notice that the dataset contains 6435 rows and 8 columns. As we want to predict Weekly_Sales from the other variables, I will refer to Weekly_Sales as the target variable and all other variables as feature variables. The data type of "Store" and "Holiday_Flag" is integer, that for "Date" is chr and for the other variables, and that for "Weekly_Sales","Holiday_Flag","Temperature","Fuel_Price","CPI" and "Unemployment" is num.
+We notice that the dataset contains 6435 rows and 8 columns. As we want to predict Weekly_Sales from the other variables, I will refer to Weekly_Sales as the target variable and all other variables as feature variables. The data type of "Store" and "Holiday_Flag" is integer, that for "Date" is chr and that for "Weekly_Sales","Holiday_Flag","Temperature","Fuel_Price","CPI" and "Unemployment" is num.
 
-The function head(dataset,n) displays the first n rows of the dataset, we can use it to visualize walmart_dataset shows the entries of the first 5 rows.
+The function head(dataset,n) displays the first n rows of the dataset, we can use it to visualize the entries of the first 5 rows of walmart_dataset.
 
 ```{r warning=FALSE, message=FALSE}
 head(walmart_dataset,5)
 ```
 
-We first omit all the rows with nan with the function na.omit(dataset) function. Then we check the range of our target variable Weekly_Sales and as both minimum and maximum Weekly sales are positive, it seems reasonable. Next we look at the store column which has integer entries. To find the number of stores included in the dataset we can use the unique() function with argument walmart_dataset\$Store to find the unique store numbers.
+We first omit all the rows with nan with the function na.omit(dataset) function. Then we check the range of our target variable Weekly_Sales. As both minimum and maximum Weekly sales are positive, it seems reasonable. Next we look at the store column which has integer entries. To find the number of stores included in the dataset we can use the unique() function with argument walmart_dataset\$Store to find the unique store numbers.
 
 ```{r warning=FALSE, message=FALSE}
 walmart_dataset<-na.omit(walmart_dataset)
@@ -72,7 +72,7 @@ mean_sales_store<-walmart_dataset%>%group_by(Store)%>%summarise(mean_sales=mean(
 mean_sales_store %>% ggplot(aes(as.character(Store), mean_sales)) + geom_point()
 ```
 
-We notice that the weekly sales are spread in each store and they have different averages for different stores, therefore it is useful to use this information in predicting weekly sales. As the store number should not have a heirarchy, we should use one-hot-encoding (<https://stackoverflow.com/questions/74706268/how-to-create-dummy-variables-in-r-based-on-multiple-values-within-each-cell-in>) to make separate columns for each store in which the entry for a row (observation) is 1 if the Store corresponds to that store and 0 otherwise. To do this we can use the pivot wider function in R to separate the Store numbers into different columns and use length as a funcion to put 1 if that observation is from that Store and 0 (values_fill is set to 0) otherwise and update the walmart_dataset.
+We notice that the weekly sales are spread in each store and they have different averages for different stores, therefore it is useful to use this information in predicting weekly sales. As the store number should not have a heirarchy, we should use one-hot-encoding[4] to make separate columns for each store in which the entry for a row (observation) is 1 if the Store corresponds to that store and 0 otherwise. To do this, we can use the pivot wider function in R to separate the Store numbers into different columns and use length as a funcion to encode 1 if that observation is from that Store and 0 (values_fill is set to 0) otherwise and update the walmart_dataset.
 
 ```{r warning=FALSE, message=FALSE}
 walmart_dataset<-walmart_dataset%>% pivot_wider(names_from = Store, names_prefix="Store",values_from = Store, values_fn = length,values_fill = 0)
@@ -85,7 +85,7 @@ walmart_dataset<-walmart_dataset%>%mutate(Day=day(dmy(Date)),Month=month(dmy(Dat
 head(walmart_dataset%>%select(c("Day","Month","Year")),5)
 ```
 
-Now, we try to visualize the distribution of weekly sales accross day, month and year by creating 3 different boxplots correspondin to each of them.
+Now, we try to visualize the distribution of weekly sales accross day, month and year by creating 3 different boxplots corresponding to each of them.
 
 ```{r warning=FALSE, message=FALSE}
 walmart_dataset%>% ggplot(aes(as.character(Day), Weekly_Sales)) + geom_boxplot()
@@ -101,7 +101,7 @@ plot(walmart_dataset%>%group_by(Month)%>%summarise(mean_sales=mean(Weekly_Sales)
 plot(walmart_dataset%>%group_by(Year)%>%summarise(mean_sales=mean(Weekly_Sales)))
 ```
 
-To understand the dependence of the mean weekly sales on Day, Month and year we can group the dataset with the correspoding variable and arrange the categories with descending values of mean sales. We find that on average, the sales were highest on day and minimum on day 14, highest in December and lowest in January and highest in 2010 and loweset in 2012.
+To understand the dependence of the mean weekly sales on Day, Month and year we can group the dataset with the corresponding variable and arrange the categories with descending values of mean sales. We find that on average, the sales were highest on day and minimum on day 14, highest in December and lowest in January and highest in 2010 and lowest in 2012.
 
 ```{r warning=FALSE, message=FALSE}
 walmart_dataset%>%group_by(Day)%>%summarise(n=n(),mean_sales=mean(Weekly_Sales))%>%arrange(desc(mean_sales))
@@ -109,7 +109,7 @@ walmart_dataset%>%group_by(Month)%>%summarise(n=n(),mean_sales=mean(Weekly_Sales
 walmart_dataset%>%group_by(Year)%>%summarise(n=n(),mean_sales=mean(Weekly_Sales))%>%arrange(desc(mean_sales))
 ```
 
-As we see a dependene of the weekly sales on day, month and year, we can separate them into different columns using one-hot encoding similar to that done for Stores. However, as we have 31 days, including each day as a feature can overcomplicate the model, therefore we only consider the effect of Month and Year. We can use pivot wider to create separate columns for each month and Year which takes the value 1 if the observation corresponds to that month or year and 0 otherwise.
+As we see a dependence of the weekly sales on day, month and year, we can separate them into different columns using one-hot encoding similar to that done for Stores [4]. However, as we have 31 days, including each day as a feature can over-complicate the model, therefore we only consider the effect of Month and Year. We can use pivot wider to create separate columns for each month and Year which takes the value 1 if the observation corresponds to that month or year and 0 otherwise.
 
 ```{r warning=FALSE, message=FALSE}
 walmart_dataset<-walmart_dataset%>% pivot_wider(names_from = Month, names_prefix="Month",values_from = Month, values_fn = length,values_fill = 0)
@@ -126,11 +126,11 @@ walmart_dataset<-walmart_dataset%>%select(-c("Day"))
 
 ### Scaling the dataset
 
-As the numerical values of each of the feautre variables can have a different magnitude, giving unequal importance to the training parameters corresponding to them during the training process. Therefore, we should scale them to have similar magnitudes, two common methods of scaling are the standard scaler which centers the values of the column at the column mean and then divides each entry with the standard devaition. However, as the outliers are also included in calculating the mean standard deviation, it can bias the centering of the column. Therefore, we can use minmax scaling (<https://www.geeksforgeeks.org/how-to-normalize-and-standardize-data-in-r/>) in which we subtract the minimum value of the column from each entry and then divide each entry of the column by the range (max-min) of that column.
+As the numerical values of each of the feature variables can have a different magnitude, giving unequal importance to the training parameters corresponding to them during the training process. Therefore, we should scale them to have similar magnitudes, two common methods of scaling are the standard scaler which centers the values of the column at the column mean and then divides each entry with the standard deviation. However, as the outliers are also included in calculating the mean standard deviation, it can bias the centering of the column. Therefore, we can use minmax scaling[5] in which we subtract the minimum value of the column from each entry and then divide each entry of the column by the range (max-min) of that column.
 
 ```{r warning=FALSE, message=FALSE}
 #Scaling the dataset
-fMinMaxSclaer <- function(x) ( #https://www.geeksforgeeks.org/how-to-normalize-and-standardize-data-in-r/
+fMinMaxSclaer <- function(x) ( 
   (x - min(x)) / (max(x) - min(x))
 )
 
@@ -140,22 +140,22 @@ head(walmart_dataset)
 
 ### Correlation between features and Weekly_Sales
 
-To understand how each of the feature variable impacts the weekly sales, we can calculate the correlation between the data of that feature variable with Weeekly_Sales.
+To understand how each of the feature variable impacts the weekly sales, we can calculate the correlation [6] between the data of that feature variable with Weekly_Sales.
 
 ```{r warning=FALSE, message=FALSE}
 cor_data<-cor(walmart_dataset$Weekly_Sales,walmart_dataset%>%select(where(is.numeric)))
 barplot(cor_data)
 ```
 
-We see that different feature variables have different correlations with Weekly sales ranging from -0.2102702149 for Store33 to 0.2833633 for Store20. \## Building the Machine Learning Model
+We see that different feature variables have different correlations with Weekly sales ranging from -0.2102702149 for Store33 to 0.2833633 for Store20.
 
 ### Machine Learning Model
 
 #### Partitioning the dataset into training and testing data
 
-A machine learning model is build to get trained on some dataset and be used to predict a quantity of interest in some unknown dataset which may not even exist at the present. Therefore, it is necessary to test the performance of the model by training it over a subset of the dataset(training_set) and test its performance over the other subset of the dataset (testing_set). The performance is evaluated by predicting the output for the target variable over the testing set and compare to the actual values of the target variable in in
+A machine learning model is build to get trained on some dataset and be used to predict a quantity of interest in some unknown dataset which may not even exist at the present. Therefore, it is necessary to test the performance of the model by training it over a subset of the dataset(training_set) and test its performance over the other subset of the dataset (testing_set). The performance is evaluated by predicting the output for the target variable over the testing set and compare to the actual values of the target variable in it.
 
-First we find out indices of 15% of rows smapled randomly from the walmart_dataset (using Weekly_Sales column) using the createDataPartition function in R. Then we use the test index to create the testing_set which will be used for testing the final model performance after fitting it over the training set which is the subset of the dataset excluding the testing set
+First, we find out indices of 15% of rows smapled randomly from the walmart_dataset (using Weekly_Sales column) using the createDataPartition function in R [1,2]. Then we use the test index to create the testing_set which will be used for testing the final model performance after fitting it over the training set which is the subset of the dataset excluding the testing set.
 
 ```{r warning=FALSE, message=FALSE}
 test_index <- createDataPartition(y = walmart_dataset$Weekly_Sales, times = 1,
@@ -176,14 +176,14 @@ head(training_set,5)
 
 In linear regression we fit the data to a function to the form $y=\Sigma c_i f_i$
 
-where t is the target variable and f_i are the feature variables. The coefficients $c_i$ are the machine learning parameters which need to be optimized from the training data. I use the caret package to train a linear model to the training_data.
+where y is the target variable and $f_i$ are the feature variables. The coefficients $c_i$ are the machine learning parameters which need to be optimized from the training data. I use the caret package [7] to train a linear model to the training_data.
 
 ```{r warning=FALSE, message=FALSE}
 fit_lm<-train(Weekly_Sales~.,method="lm",data=training_set)
 summary(fit_lm)
 ```
 
-The summary function displays the optimized fit coefficients after the training.with their standard errors and t values. The t-statistic is the ratio of the estimate of the parameter to its standard error (assuming the null-hypothesis is model parameter = 0). As the t-statistic folows a student-t distribution, we can estimate the probablity that such a parameter could occur due to statistical fluctuations and it is mentioned in the Pr(\>\|t\|) column. As lower Pr(\>\|t\|) means that the non-zero value of the parameter is less likely to have arisen due to statistical fluctuations.The residual standard error is an estimate of the errors made by asssuming the functional form of Weekly_Sales as a linear function of the feature variables evaluated on the training set.
+The summary function displays the optimized fit coefficients after the training.with their standard errors and t values. The t-statistic is the ratio of the estimate of the parameter to its standard error (assuming the null-hypothesis is model parameter = 0). As the t-statistic follows a student-t distribution, we can estimate the probability that such a parameter could occur due to statistical fluctuations and it is mentioned in the Pr(\>\|t\|) column. As lower Pr(\>\|t\|) means that the non-zero value of the parameter is less likely to have arisen due to statistical fluctuations.The residual standard error is an estimate of the errors made by assuming the functional form of Weekly_Sales as a linear function of the feature variables.
 
 Now, that we have fitted the linear model on the training set we can use it to predict the Weekly_Sales from the the other variables in the validation set using the predict function
 
@@ -191,7 +191,7 @@ Now, that we have fitted the linear model on the training set we can use it to p
 y_hat<-predict(fit_lm,testing_set)
 ```
 
-We can find out the mean absolute error betweent the predicted and actual Weekly_Sales in the validation_set by using the MAE function (ref Introduction to Data Science by Rafael A. Irizarry)
+We can find out the mean absolute error between the predicted and actual Weekly_Sales in the validation_set by using the MAE function[3]
 
 ```{r warning=FALSE, message=FALSE}
 MAE<-function(true_values,predicted_values){
@@ -203,20 +203,20 @@ MAE<-function(true_values,predicted_values){
 mae_lm<-MAE(testing_set$Weekly_Sales,y_hat)
 ```
 
-We see that the mean absolute error (MAE) is 94271.92. Similarly the root mean square deviation can be found by defining the RMSE function
+We see that the mean absolute error (MAE) is 85775.22. Similarly the root mean square deviation can be found by defining the RMSE function[3]
 
 ```{r warning=FALSE, message=FALSE}
 RMSE <- function(true_values, predicted_values){
   sqrt(mean((true_values - predicted_values)^2))}
 ```
 
-and using it to calulate the RMSE as
+and using it to calculate the RMSE as
 
 ```{r warning=FALSE, message=FALSE}
 rmse_lm<-RMSE(testing_set$Weekly_Sales,y_hat)  
 ```
 
-which is calulated to be 155826.1. However, to get a sense of the model performance, we should calculate the ratio of the error to the mean of the Weekly_Sales, as scaling the Weekly_Sales would also scale up the errors in the prediction. This is known as the relative errors and can relative_mae and relative_rmse
+which is calculated to be 139558.1. However, to get a sense of the model performance, we should calculate the ratio of the error to the mean of the Weekly_Sales, as scaling the Weekly_Sales would also scale up the errors in the prediction. This is known as the relative errors and can relative_mae and relative_rmse
 
 ```{r warning=FALSE, message=FALSE}
 rmse_lm<-RMSE(testing_set$Weekly_Sales,y_hat)  
@@ -230,20 +230,20 @@ print(rmse_lm)
 print(relative_rmse_lm)
 ```
 
-We find the relative_mae is 0.08956513 and the relative_rmse is 0.1480461 which are both around 10%. Thus, we find that using the linear model and just a handful of information about the store and environment, we can predict the weekly sales to an accuracy of around 10% relative error which is quite amazing.
+We find the relative_mae is 0.08226522 and the relative_rmse is 0.1338473 which are both around 10%. Thus, we find that using the linear model and just a handful of information about the store and environment, we can predict the weekly sales to an accuracy of around 10% relative error which is quite amazing.
 
-#### K-Nearest Neighbours Model
+#### K-Nearest Neighbors Model
 
-Usually the data points which are close in the feature space also have the same target value, for example the phones having similar features have similar price. We can utilize this information to make a prediction using the k-nearest neightbors (knn) model which uses knnreg for continuous variables (<https://github.com/topepo/caret/blob/master/models/files/knn.R>). In this model, for a given featueset, k observations in the training data are found which have the smallest distance to the given feature set. Then the predicted value is given by the average of the target value of these k-data points in the training set. However, we do not know which value of k should provide the best result, therefore I train the knn model using k values form 1-30 in steps of 2 and obtain the RMSE and print the RMSE vs k (#Neighbors) in a line plot.
+Usually the data points which are close in the feature space also have the same target value, for example the phones having similar features have similar price. We can utilize this information to make a prediction using the k-nearest neighbors (knn) model which uses knnreg for continuous variables (<https://github.com/topepo/caret/blob/master/models/files/knn.R>). In this model, for a given feature set, k observations in the training data are found which have the smallest distance to the given feature set. Then the predicted value is given by the average of the target value of these k-data points in the training set. However, we do not know which value of k should provide the best result, therefore I train the knn model using k values form 1-30 in steps of 2 and obtain the RMSE and print the RMSE vs k (#Neighbors) in a line plot.
 
 ```{r warning=FALSE, message=FALSE}
-fit_knnreg<-train(Weekly_Sales~.,method="knn",data=training_set,metric="RMSE",tuneGrid = data.frame(k = seq(13, 13, 2)))
+fit_knnreg<-train(Weekly_Sales~.,method="knn",data=training_set,metric="RMSE",tuneGrid = data.frame(k = seq(1, 30, 2)))
 summary(fit_knnreg)
 print(fit_knnreg)
 fit_knnreg$bestTune
 ```
 
-The k-value giving the lowest RMSE can be found using fit_knn\$bestTune and is found to be 15. The trained model contatins the best paramter (k=15) and can be used to predict the Weeekly_Sales in the validation dataset. Comparing to the true values of the Weekly_Sales in the dataset the mae,relative_mae,rmse and relative_rmse can be found.
+The k-value giving the lowest RMSE can be found using fit_knn\$bestTune and is found to be 1 although there is a local minima of the RMSE at k=25. This value of k is used in the knn model. Comparing to the true values of the Weekly_Sales in the dataset the mae,relative_mae, rmse and relative_rmse can be found.
 
 ```{r warning=FALSE, message=FALSE}
 y_hat<-predict(fit_knnreg,testing_set)
@@ -258,11 +258,11 @@ print(rmse_knnreg)
 print(relative_rmse_knnreg)
 ```
 
-We find the relative mae is 0.07010366 and the relative rmse is 0.1372029 which is an improvement from the linear model. It suggests that a linear model is not able to capture the effect of the feature variables on weekly sales but the average of 15 nearest neighbors provides a better estimate of the Weekly_Sales in this dataset.
+We find the relative mae is 0.08484333 and the relative rmse is 0.1746274 which is slightly more than that from the linear model. It suggests that a linear model is not able to capture all the effect of the feature variables on weekly sales but it still provides an estimate with similar accuracy to the linear model.
 
 #### Logistic Regression of the category of Weekly Sales
 
-Many a times, it is important to categorize the target variable into different classes ranging from its minimum to maximum value and use the Machine Learning model to output the cateogry into which the target variables should fall given its set of feature values. For example, the store might be interested in making its overall strategy based on weather a given set of conditions would tend to produce high, medium or low weekly_sales and optimize the conditions based on that. Therefore, in this section, I create 3 classes of the weekly sales using its maximum and minimum values and mutate it as the Category_Weekly_Sales column.
+Many a times, it is important to categorize the target variable into different classes ranging from its minimum to maximum value and use the Machine Learning model to output the category into which the target variables should fall given its set of feature values. For example, the store might be interested in making its overall strategy based on weather a given set of conditions would tend to produce high, medium or low weekly_sales and optimize the conditions based on that. Therefore, in this section, I create 3 classes of the weekly sales using its maximum and minimum values and mutate it as the Category_Weekly_Sales column.
 
 ```{r warning=FALSE, message=FALSE}
 hist(training_set$Weekly_Sales)
@@ -274,14 +274,14 @@ training_set<-training_set%>%mutate(Category_Weekly_Sales=floor((Weekly_Sales-mi
 testing_set<-testing_set%>%mutate(Category_Weekly_Sales=floor((Weekly_Sales-min_weekly_sales)/range_weekly_sales*2.9))
 ```
 
-We can visualize the distribution of Category_Weekly_Sales by plotting its histogram and also by using the group_by function to show the number of occurences and the mean weekly sales in each of these categories. We observe that the categories 0, 1 and 2 contain 4193,1245 and 29 entries while the mean weekly sales in them are 799830, 1833005 and 3087096 respectively.
+We can visualize the distribution of Category_Weekly_Sales by plotting its histogram and also by using the group_by function to show the number of occurrences and the mean weekly sales in each of these categories. We observe that the categories 0, 1 and 2 contain 4191,1246 and 30 entries while the mean weekly sales in them are 799742, 1832458 and 3098531 respectively.
 
 ```{r warning=FALSE, message=FALSE}
 hist(as.numeric(training_set$Category_Weekly_Sales))
 training_set%>%group_by(Category_Weekly_Sales)%>%summarise(n=n(), mean_weekly_sales=mean(Weekly_Sales))
 ```
 
-Now, we can train a machine learning model to predict the category of Weekly_Sales from the other features (except Weekly_Sales as it was used to create the Category_Weekly_Sales so it should not be used as a feature variable). We can use knn, this time to be used for a classification task instead of the previous regression task. For that, we should first convert the Category_Weekly_Sales as factors an d then the knn model over it. As k=1 gave the lowest RMSE for regression, I have used k=1 although the model can be tested for different k values and the k value from the model with the lowest RMSE can be chosen for the final model.
+Now, we can train a machine learning model to predict the category of Weekly_Sales from the other features (except Weekly_Sales as it was used to create the Category_Weekly_Sales so it should not be used as a feature variable). We can use knn, this time to be used for a classification task instead of the previous regression task. For that, we should first convert the Category_Weekly_Sales as factors and then train the knn model over it. As k=1 gave the lowest RMSE for regression, I have used k=1 although the model can be tested for different k values and the k value from the model with the lowest RMSE can be chosen for the final model.
 
 ```{r warning=FALSE, message=FALSE}
 training_set<-training_set%>%mutate(Category_Weekly_Sales=as.factor(Category_Weekly_Sales))
@@ -289,7 +289,6 @@ testing_set<-testing_set%>%mutate(Category_Weekly_Sales=as.factor(Category_Weekl
 
 fit_knncl<-train(Category_Weekly_Sales~.,method="knn",data=training_set[,-1],tuneGrid = data.frame(k = 1))
 summary(fit_knncl)
-fit_knncl$bestTune
 ```
 
 Now, with the fitted knn model with the best tune, we can test its performance over the testing set.
@@ -299,15 +298,15 @@ y_hat_knncl<-predict(fit_knncl,testing_set[,-1],type="raw")
 confusionMatrix(y_hat_knncl, testing_set$Category_Weekly_Sales)
 ```
 
-We find that the knn model gives an accuracy of 0.8874. The confusion matrix shows the comparision between the reference and prediction values which should be a diagonal matrix in case of perfect prediction. The non-diagonal entries represent errors during the classification similar to the case when there are 2 classes in which false positive (when the prediction is positive and actual value is negative) and false_negatives (when the prediction is negative and actual value is positive) represent the errors made during the classification. Accurracy represents the ratio of number of instances which were correctly classified with the total number of instances.
+The confusion matrix shows the comparison between the reference and prediction values, which should be a diagonal matrix in case of perfect prediction. The non-diagonal entries represent errors during the classification similar to the case when there are 2 classes in which false positive (when the prediction is positive and actual value is negative) and false_negatives (when the prediction is negative and actual value is positive) represent the errors made during the classification. Accuracy represents the ratio of number of instances which were correctly classified with the total number of instances. We find that the knn model gives an accuracy of 92.98%.
 
 ## Summary of Results
 
-In this project we have successfully built a machine learning model to predict the Weekly_Sales from the store number and other features in the dataset. In the first model, a linear model was used to regress the value of weekly sales from other features which was trained over the training set. To evaluate the model perfromance two different metrics, the mae (Mean absolute error) and rmse (Root Mean Squared Error) were used which was 83550.32 and 136923 respectively for the linear regression model. To compare this error with the magnitude of the variable we are predicting, the relative_mae and relative_rmse which are the ratio of the mae and rmse to the mean of the Weekly_Sales were calculated and were found to be 0.07956794 and 0.1303967 respectively. Next a k-Nearest Neighbors model with regression mode was trained with different values of k to predict the weekly sales from other features. Although the RMSE showed a local minima at k=15, the lowest RMSE was found to be at k=1 which was chosen for the knn model. The mae, rmse, relative_mae and relative_rmse for the knn model were found to be 84540.2, 165459.1, 0.08051064 and 0.1575726 respectively. Next, the Weekly_Sales column was categorized into high, medium and low weekly sales and a knn model with classification mode was trained over the trainining set and used to predict the category of the Weekly_Sales in the testing set. The performance was visualized using the confusion matrix and accuracy and the accuracy was found to be 89.26%.
+In this project I have successfully built a machine learning model to predict the Weekly_Sales from the store number and other features in the dataset. In the first model, a linear model was used to regress the value of weekly sales from other features which was trained over the training set. To evaluate the model performance two different metrics, the mae (Mean absolute error) and rmse (Root Mean Squared Error) were used which were found to be 85775.22 and 139558.1 respectively for the linear regression model. To compare this error with the magnitude of the variable we are predicting, the relative_mae and relative_rmse which are the ratio of the mae and rmse to the mean of the Weekly_Sales were calculated and were found to be 0.08226522 and 0.1338473 respectively. Next a k-Nearest Neighbors model with regression mode was trained with different values of k to predict the weekly sales from other features. Although the RMSE showed a local minima at k=25, the lowest RMSE was found to be at k=1 which was chosen for the knn model. The mae, rmse, relative_mae and relative_rmse for the knn model were found to be 88463.33, 182078.2, 0.08484333 and 0.1746274 respectively. Next, the Weekly_Sales column was categorized into high, medium and low weekly sales and a knn model with classification mode was trained over the training set and used to predict the category of the Weekly_Sales in the testing set. The performance was visualized using the confusion matrix and the accuracy of the classification model was found to be 92.98%.
 
 ## Conclusion
 
-In this project, I have utilized the concepts of machine learning to build a model to predict the weekly sales of a store based on the store number and other conditions (Holiday, Temperature,Fuel_Price,CPI and Unemployment index). The dataset was first preprocessed, scaled and then partitioned into the training and testing sets. A linear model and a knn model with regression mode was then fitted over the training set and evaluated over the testing set. The linear model was found to have a better relatively mean absolute error and relative root mean squared error. The relative mean squared errors were different for different k which shows that hyperparameter tunning is important during training a machine learning model. Then, the Weekly_Sales was columns was categorized into high, medium and low weekly sales and a knn model was fit with classification to predict the cateogry of Weekly_Sales. It was found to have an accuracy of 89.26%. This model could be improved by using L1 and L2 type regularization and by using cross validation and decision trees for classification among other machine learning methods that can also be used and tested. Through this project, I have realized the importance of utilizing data to understand quantities of significance which can be used for optimizing the parameters at hand to achive the best possible value for a target variable and this model can be generalized to predict the weekly sales of other stores by preprocessing the features to the appropriate format.
+In this project, I have utilized the concepts of machine learning to build a model to predict the weekly sales of a store based on the store number and other conditions (Holiday, Temperature, Fuel_Price, CPI and Unemployment index). The dataset was first preprocessed, scaled and then partitioned into the training and testing sets. A linear model and a knn model with regression mode were then fitted over the training set and evaluated over the testing set. The linear model was found to have a better relatively mean absolute error and relative root mean squared error. The relative mean squared errors were different for different k in the knn model which shows that hyperparameter tunning is important during training a machine learning model. To estimate the overall nature of Weekly_Sales, the Weekly_Sales was columns was categorized into high, medium and low weekly sales and a knn model was fit with classification to predict the category of Weekly_Sales. It was found to have a classification accuracy of 92.98%. This model could be improved by using L1 and L2 type regularization and by using cross validation and decision trees for classification among other machine learning methods that can also be used and tested. Through this project, I have realized the importance of utilizing data to understand and predict quantities of interest from other features. This can be used in many practical applications for optimizing the parameters at hand (in this case to choose the location based on the feature parameters ) to achieve the best possible value for a target variable (weekly sales of the store). This model can be generalized to predict the weekly sales of other stores by preprocessing the features of that store to the appropriate format used in the models in this project.
 
 ## References
 
@@ -319,5 +318,6 @@ In this project, I have utilized the concepts of machine learning to build a mod
 \item https://stackoverflow.com/questions/74706268/how-to-create-dummy-variables-in-r-based-on-multiple-values-within-each-cell-in
 \item https://www.geeksforgeeks.org/how-to-normalize-and-standardize-data-in-r/
 \item https://stackoverflow.com/questions/62679940/geom-bar-of-named-number-vector
+\item Kuhn, M. (2008). Building Predictive Models in R Using the caret Package. Journal of Statistical Software, 28(5), 1–26. https://doi.org/10.18637/jss.v028.i05
 \end{enumerate}
 ```

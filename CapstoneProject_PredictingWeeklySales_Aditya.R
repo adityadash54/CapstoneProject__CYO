@@ -18,7 +18,7 @@ library(corrplot)
 # Reading the dataset
 #https://www.kaggle.com/datasets/yasserh/walmart-dataset/data by M YASSER H
 options(timeout = 120)
-
+set.seed(1, sample.kind="Rounding")
 
 walmart_dataset <- read.csv("/Users/aditya/Documents/Coursework/Online_Courses/Machine_Learning_and_Deep_Learning/Data_Science_Edx_Harvard_R/Final_Project/Capstone_Project/Walmart_Dataset/Walmart.csv")
 str(walmart_dataset)
@@ -143,7 +143,7 @@ training_set%>%group_by(Category_Weekly_Sales)%>%summarise(n=n(), mean_weekly_sa
 training_set<-training_set%>%mutate(Category_Weekly_Sales=as.factor(Category_Weekly_Sales))
 testing_set<-testing_set%>%mutate(Category_Weekly_Sales=as.factor(Category_Weekly_Sales))
 
-fit_knncl<-train(Category_Weekly_Sales~.,method="knn",data=training_set[,-1],tuneGrid = data.frame(k = seq(15,15,2)))
+fit_knncl<-train(Category_Weekly_Sales~.,method="knn",data=training_set[,-1],tuneGrid = data.frame(k = 1))
 summary(fit_knncl)
 fit_knncl$bestTune
 y_hat_knncl<-predict(fit_knncl,testing_set[,-1],type="raw")
@@ -156,3 +156,4 @@ confusionMatrix(y_hat_knncl, testing_set$Category_Weekly_Sales)
 #https://stackoverflow.com/questions/74706268/how-to-create-dummy-variables-in-r-based-on-multiple-values-within-each-cell-in
 # https://www.geeksforgeeks.org/how-to-normalize-and-standardize-data-in-r/
 # https://stackoverflow.com/questions/62679940/geom-bar-of-named-number-vector
+# Kuhn, M. (2008). Building Predictive Models in R Using the caret Package. Journal of Statistical Software, 28(5), 1–26. https://doi.org/10.18637/jss.v028.i05
