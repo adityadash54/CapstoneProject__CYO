@@ -1,6 +1,7 @@
 ---
 title: "Predicting Weeekly Sales from Store Features"
-subtitle: "Data Science: Capstone Project (HarvardX PH125.9x)"
+#subtitle: "Data Science: Capstone Project (HarvardX PH125.9x)"
+subtitle: "Data Science: Capstone Project"
 author: "Aditya Prasad Dash"
 output: pdf_document
 editor_options: 
